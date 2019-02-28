@@ -67,13 +67,16 @@ def get_earnings_report_xpath(TICKER, earning_quarter='4th'):
         return n_a
 
 
-def get_earnings_report_soup(TICKER, earning_quarter='4th'):
+def get_earnings_report_soup(TICKER, earning_date='February 27', am_pm='pm'):
+    am_pm = am_pm.upper() # making am_pm input always upper case.
     try:
         soup = get_soup(f'https://www.earningswhispers.com/epsdetails/{TICKER}')
         page = requests.get(f'https://www.earningswhispers.com/epsdetails/{TICKER}')
         tree = html.fromstring(page.content)
 
-        release_Date = tree.xpath('//*[@id="chartbox"]/text()')
+        # release_Date = tree.xpath('//*[@id="chartbox"]/text()') # Tells with whicn quarter report it is
+        release_Date = tree.xpath('//*[@id="chartbox"]/text()[2]')
+
         if release_Date:
             release_Date = release_Date[0]
 
@@ -91,10 +94,10 @@ def get_earnings_report_soup(TICKER, earning_quarter='4th'):
             consesus_Earnings = 'N/A'
 
         reported_Revenues = soup.find("div", {"class": "fourthitem"})
-        if reported_Revenues:
+        if reported_Revenues.text: # there is a empty spot for Revenue, but not for others that's why .text is here
             reported_Revenues = reported_Revenues.text.replace('$', '').replace(' ', '').replace('il', '')
         else:
-            reported_Earnings = 'N/A'
+            reported_Revenues = 'N/A'
 
         consesus_Revenues= soup.find("div", {"class": "fifthitem"})
         if consesus_Revenues:
@@ -114,10 +117,11 @@ def get_earnings_report_soup(TICKER, earning_quarter='4th'):
 
         report_summary = f'\nTICKER: {TICKER}\nRelease Date: {release_Date}\nEPS: {reported_Earnings} vs est {consesus_Earnings}\nRev: {reported_Revenues} vs est {consesus_Revenues}\nYoY: {YoY} \n'
 
-        if earning_quarter not in release_Date:
-            report_summary = f'\nOnly have old reports for TICKER: {TICKER}\n'
-        print(report_summary)
+        if am_pm not in release_Date or earning_date not in release_Date:
+            report_summary = ''
+            print(f'\nOnly have old reports for TICKER: {TICKER}\n')
 
+        print(report_summary)
         return report_summary
 
     except:
@@ -128,7 +132,7 @@ def get_earnings_report_soup(TICKER, earning_quarter='4th'):
 
 
 
-
+# get_earnings_report_soup('BBY', )
 
 
 
@@ -157,7 +161,7 @@ def send_email(to='', subject='Earnings Whispers', message=str('')):
 
 if __name__ == "__main__":
     # gets tickers for specifc day
-    ticker_array = get_earnings_list(date='2019-02-25')
+    ticker_array = get_earnings_list(date='2019-02-27')
 
     # brings reports into one string
     report_string = ''
